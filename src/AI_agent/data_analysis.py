@@ -30,7 +30,9 @@ class RealEstateAnalyzer:
         # 如果過濾後有足夠的數據
         if len(df) > 0:
             # 基本統計
-            avg_price = df['每坪單價'].mean()
+            avg_price_per_ping = df['每坪單價'].mean()
+            avg_total_price = df['總價元'].mean()
+            avg_size_ping = df['建物移轉總坪數'].mean()
             count = len(df)
             
             # 增加更多統計指標
@@ -38,7 +40,9 @@ class RealEstateAnalyzer:
                 "median": df['每坪單價'].median(),
                 "min": df['每坪單價'].min(),
                 "max": df['每坪單價'].max(),
-                "std": df['每坪單價'].std()
+                "std": df['每坪單價'].std(),
+                "avg_total_price": avg_total_price,   # 平均總價
+                "avg_size_ping": avg_size_ping        # 平均坪數
             }
             
             # 計算各區域平均價格
@@ -53,7 +57,9 @@ class RealEstateAnalyzer:
                     logger.warning(f"計算區域平均失敗: {e}")
             
             return {
-                "avg_price": avg_price,
+                "avg_price": avg_price_per_ping,
+                "avg_total_price": avg_total_price,
+                "avg_size_ping": avg_size_ping,
                 "count": count,
                 "district": district,
                 "filters": filters,
@@ -64,6 +70,8 @@ class RealEstateAnalyzer:
         # 數據集為空的情況
         return {
             "avg_price": None,
+            "avg_total_price": None,
+            "avg_size_ping": None,
             "count": 0,
             "district": district,
             "filters": filters,
@@ -127,6 +135,8 @@ class RealEstateAnalyzer:
             }
         
         avg_price = result["avg_price"]
+        avg_total_price = result.get("avg_total_price", 0)
+        avg_size_ping = result.get("avg_size_ping", 0)
         count = result["count"]
         
         # 獲取更多統計資訊（如果有的話）
@@ -134,24 +144,42 @@ class RealEstateAnalyzer:
         if "stats" in result and isinstance(result["stats"], dict):
             stats = result["stats"]
         
-        # 構建更豐富的結果文本
-        formatted_result = f"{city}{condition_text}的平均房價為 {avg_price:,.0f} 元/坪，基於 {count} 筆交易記錄分析。"
+        # 格式化價格（轉換為萬元）
+        avg_price_wan = round(avg_price / 10000, 1)  # 四捨五入到小數點後一位
+        avg_price_ping_formatted = f"{avg_price_wan} 萬元"
+        
+        avg_total_price_wan = round(avg_total_price / 10000)
+        avg_total_price_formatted = f"{avg_total_price_wan:,} 萬元"
+        
+        # 格式化坪數（四捨五入到小數點第一位）
+        avg_size_formatted = f"{avg_size_ping:.1f} 坪"
+        
+        # 格式化數據筆數，添加千分位逗號
+        count_formatted = f"{count:,}"
+        
+        # 構建更豐富的結果文本 (Markdown 格式)
+        formatted_result = f"基於 {count_formatted} 筆交易記錄，{city}{condition_text} 的平均房價數據如下：\n"
+        formatted_result += f"- 每坪平均價格: {avg_price_ping_formatted}\n"
+        formatted_result += f"- 平均房屋總價: {avg_total_price_formatted}\n"
+        formatted_result += f"- 平均房屋大小: {avg_size_formatted}"
         
         # 添加額外統計信息（如果有）
-        if stats:
-            if "median" in stats:
-                formatted_result += f"\n中位數房價: {stats['median']:,.0f} 元/坪"
-            if "min" in stats and "max" in stats:
-                formatted_result += f"\n價格範圍: {stats['min']:,.0f} - {stats['max']:,.0f} 元/坪"
-            if "std" in stats:
-                formatted_result += f"\n標準差: {stats['std']:,.0f} 元/坪"
+        if stats and "median" in stats:
+            median_wan = round(stats['median'] / 10000, 1)  # 轉換為萬元並四捨五入到小數點後一位
+            median_formatted = f"{median_wan} 萬元"
+            formatted_result += f"\n- 中位數每坪房價: {median_formatted}"
+        
+        # 注意：已移除價格範圍信息
         
         return {
             "success": True,
             "message": "成功處理房地產數據查詢",
             "result": formatted_result,
             "dataframe": result.get("dataframe"),
-            "stats": stats  # 包含原始統計數據，方便前端使用
+            "stats": stats,  # 包含原始統計數據，方便前端使用
+            "avg_price_ping": avg_price,
+            "avg_total_price": avg_total_price,
+            "avg_size_ping": avg_size_ping
         }
     
     @staticmethod
