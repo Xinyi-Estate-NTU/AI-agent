@@ -24,30 +24,66 @@ CURRENT_YEAR = 2025
 INPUT_TYPE_GENERAL = "general"
 INPUT_TYPE_DATA_ANALYSIS = "data_analysis"
 
+
 # 查詢類型常量
 class QueryType(Enum):
-    PLOT = "plot"             # 製圖
-    AVERAGE_PRICE = "price"   # 平均價格
-    OTHER = "other"           # 其他類型
+    PLOT = "plot"  # 製圖
+    AVERAGE_PRICE = "price"  # 平均價格
+    OTHER = "other"  # 其他類型
+
 
 # 平均價格相關關鍵詞
 PRICE_KEYWORDS = [
-    '房價', '價格', '行情', '均價', '單價', '多少錢', '價位', 
-    '平均', '值多少', '房子多少', '一坪', '每坪'
+    "房價",
+    "價格",
+    "行情",
+    "均價",
+    "單價",
+    "多少錢",
+    "價位",
+    "平均",
+    "值多少",
+    "房子多少",
+    "一坪",
+    "每坪",
 ]
 
 # 製圖相關關鍵詞
 PLOT_KEYWORDS = [
-    '圖表', '統計圖', '長條圖', '折線圖', '圓餅圖', '視覺化', 
-    '趨勢圖', '分布圖', '比較圖', '走勢', '顯示', '製圖', 
-    '畫出', '繪製', '視覺呈現', '圖形', '趨勢', '走勢', '變化', '漲跌', '成長', '歷史'
+    "圖表",
+    "統計圖",
+    "長條圖",
+    "折線圖",
+    "圓餅圖",
+    "視覺化",
+    "趨勢圖",
+    "分布圖",
+    "比較圖",
+    "走勢",
+    "顯示",
+    "製圖",
+    "畫出",
+    "繪製",
+    "視覺呈現",
+    "圖形",
+    "趨勢",
+    "走勢",
+    "變化",
+    "漲跌",
+    "成長",
+    "歷史",
 ]
 
 #########################################################
 # 模型和 LangSmith 設定
 #########################################################
 # LLM 模型設定
-MODELS = ["llama3-8b-8192", "llama3-70b-8192", "llama-3.1-8b-instant", "llama-3.3-70b-versatile"]
+MODELS = [
+    "llama3-8b-8192",
+    "llama3-70b-8192",
+    "llama-3.1-8b-instant",
+    "llama-3.3-70b-versatile",
+]
 DEFAULT_MODEL = MODELS[0]
 
 # 默認LLM實例
@@ -55,32 +91,67 @@ DEFAULT_LLM = ChatGroq(model_name=DEFAULT_MODEL, temperature=0)
 
 # 創建持久化記憶存儲
 CONVERSATION_MEMORY = ConversationBufferMemory(
-    memory_key="chat_history",
-    return_messages=True
+    memory_key="chat_history", return_messages=True
 )
 
 # LangSmith設定
 LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT")
 LANGSMITH_CLIENT = Client()
 SESSION_ID = "thread-id-1"
-LANGSMITH_EXTRA = {"project_name": LANGSMITH_PROJECT, "metadata": {"session_id": SESSION_ID}}
+LANGSMITH_EXTRA = {
+    "project_name": LANGSMITH_PROJECT,
+    "metadata": {"session_id": SESSION_ID},
+}
 
 #########################################################
 # 地理位置資料
 #########################################################
 # 台北市行政區列表
 TAIPEI_DISTRICTS = [
-    '大安區', '信義區', '中正區', '松山區', '大同區', '萬華區', '文山區', 
-    '南港區', '內湖區', '士林區', '北投區'
+    "大安區",
+    "信義區",
+    "中正區",
+    "松山區",
+    "大同區",
+    "萬華區",
+    "文山區",
+    "南港區",
+    "內湖區",
+    "士林區",
+    "北投區",
 ]
 
 # 新北市行政區列表
 NEW_TAIPEI_DISTRICTS = [
-    '板橋區', '三重區', '中和區', '永和區', '新莊區', '新店區', '土城區',
-    '蘆洲區', '汐止區', '樹林區', '淡水區', '三峽區', '鶯歌區', '林口區',
-    '五股區', '泰山區', '瑞芳區', '八里區', '深坑區', '石碇區', '三芝區',
-    '金山區', '萬里區', '平溪區', '雙溪區', '貢寮區', '坪林區', '石門區',
-    '烏來區'
+    "板橋區",
+    "三重區",
+    "中和區",
+    "永和區",
+    "新莊區",
+    "新店區",
+    "土城區",
+    "蘆洲區",
+    "汐止區",
+    "樹林區",
+    "淡水區",
+    "三峽區",
+    "鶯歌區",
+    "林口區",
+    "五股區",
+    "泰山區",
+    "瑞芳區",
+    "八里區",
+    "深坑區",
+    "石碇區",
+    "三芝區",
+    "金山區",
+    "萬里區",
+    "平溪區",
+    "雙溪區",
+    "貢寮區",
+    "坪林區",
+    "石門區",
+    "烏來區",
 ]
 
 # 合併兩市行政區，用於包含所有可能的區域搜索
@@ -89,26 +160,36 @@ ALL_DISTRICTS = TAIPEI_DISTRICTS + NEW_TAIPEI_DISTRICTS
 # 區域簡稱映射
 DISTRICT_MAPPING = {
     # 台北市
-    '大安': '大安區', '信義': '信義區', '中正': '中正區', 
-    '松山': '松山區', '大同': '大同區', '萬華': '萬華區', 
-    '文山': '文山區', '南港': '南港區', '內湖': '內湖區', 
-    '士林': '士林區', '北投': '北投區',
-    
+    "大安": "大安區",
+    "信義": "信義區",
+    "中正": "中正區",
+    "松山": "松山區",
+    "大同": "大同區",
+    "萬華": "萬華區",
+    "文山": "文山區",
+    "南港": "南港區",
+    "內湖": "內湖區",
+    "士林": "士林區",
+    "北投": "北投區",
     # 新北市
-    '板橋': '板橋區', '三重': '三重區', '中和': '中和區',
-    '永和': '永和區', '新莊': '新莊區', '新店': '新店區',
-    '土城': '土城區', '蘆洲': '蘆洲區', '汐止': '汐止區',
-    '樹林': '樹林區', '淡水': '淡水區'
+    "板橋": "板橋區",
+    "三重": "三重區",
+    "中和": "中和區",
+    "永和": "永和區",
+    "新莊": "新莊區",
+    "新店": "新店區",
+    "土城": "土城區",
+    "蘆洲": "蘆洲區",
+    "汐止": "汐止區",
+    "樹林": "樹林區",
+    "淡水": "淡水區",
 }
 
 # 有效的城市列表 (統一命名格式)
 VALID_CITIES = ["台北市", "新北市"]
 
 # 有效的行政區映射 (擴展 DISTRICT_MAPPING)
-VALID_DISTRICTS = {
-    "台北市": TAIPEI_DISTRICTS,
-    "新北市": NEW_TAIPEI_DISTRICTS
-}
+VALID_DISTRICTS = {"台北市": TAIPEI_DISTRICTS, "新北市": NEW_TAIPEI_DISTRICTS}
 
 # 結構化輸出回應 schemas 配置
 RESPONSE_SCHEMAS_CONFIG = [
@@ -116,53 +197,57 @@ RESPONSE_SCHEMAS_CONFIG = [
         "name": "城市",
         "description": "查詢的城市，必須是以下城市之一：台北市、新北市。注意：統一使用「台北市」而非「臺北市」",
         "type": "string",
-        "examples": ["台北市", "新北市"]
+        "examples": ["台北市", "新北市"],
     },
     {
         "name": "鄉鎮市區",
         "description": "行政區，必須是有效的行政區名稱，例如「大安區」、「信義區」等",
         "type": "string",
-        "examples": ["大安區", "信義區", "中正區", "板橋區"]
+        "examples": ["大安區", "信義區", "中正區", "板橋區"],
     },
     {
         "name": "時間範圍",
         "description": "查詢的時間範圍。如果用戶未明確提及時間範圍，請返回null。時間範圍必須是JSON格式，包含start_year、end_year和description三個字段",
         "examples": [
             {"start_year": 2020, "end_year": 2024, "description": "2020-2024年"},
-            {"start_year": 2023, "end_year": 2024, "description": "近兩年（2023-2024）"},
-            None
-        ]
+            {
+                "start_year": 2023,
+                "end_year": 2024,
+                "description": "近兩年（2023-2024）",
+            },
+            None,
+        ],
     },
     {
         "name": "建物現況格局-房",
         "description": "房間數量，必須是阿拉伯數字（整數），如果查詢中未提及則返回null",
         "type": "integer",
-        "examples": [2, 3, 4, None]
+        "examples": [2, 3, 4, None],
     },
     {
         "name": "建物現況格局-廳",
         "description": "客廳數量，必須是阿拉伯數字（整數），如果查詢中未提及則返回null",
         "type": "integer",
-        "examples": [1, 2, None]
+        "examples": [1, 2, None],
     },
     {
         "name": "建物現況格局-衛",
         "description": "衛浴數量，必須是阿拉伯數字（整數），如果查詢中未提及則返回null",
         "type": "integer",
-        "examples": [1, 2, None]
+        "examples": [1, 2, None],
     },
     {
         "name": "電梯",
         "description": "有無電梯，值必須是「有」或「無」，如果查詢中未提及則返回null",
         "type": "string",
-        "examples": ["有", "無", None]
+        "examples": ["有", "無", None],
     },
     {
         "name": "屋齡",
         "description": "屋齡年數，必須是阿拉伯數字（整數），如果查詢中未提及則返回null",
         "type": "integer",
-        "examples": [5, 10, 30, None]
-    }
+        "examples": [5, 10, 30, None],
+    },
 ]
 
 # 解析查詢模板 (將模板移至配置中，以便統一管理)
@@ -220,4 +305,3 @@ QUERY_PARSING_TEMPLATE = """
 
 用戶查詢: {query}
 """
-
