@@ -139,69 +139,63 @@ class RealEstateQueryProcessor:
             # 載入數據
             df = self.data_loader.load_city_data(city)
             
+            # 決定圖表類型
+            chart_type = "trend"  # 預設為趨勢圖
+            
+            # 可以根據查詢文本識別其他圖表類型
+            if "柱狀圖" in query_text or "長條圖" in query_text or "bar" in query_text.lower():
+                chart_type = "bar"
+            
+            # 提取時間範圍
+            time_range = parsed_params.get("時間範圍")
+            logger.info(f"解析出的時間範圍: {time_range}")
+            
             # 使用專用趨勢圖生成方法
-            if "趨勢" in query_text or "走勢" in query_text or "變化" in query_text:
-                logger.info("檢測到趨勢查詢，使用專用趨勢圖生成方法")
-                trend_result = self.analyzer.generate_price_trend_chart(df, city, district)
+            if "趨勢" in query_text or "走勢" in query_text or "變化" in query_text or True:  # 預設使用趨勢圖
+                logger.info(f"使用圖表類型: {chart_type}")
+                trend_result = self.analyzer.generate_price_trend_chart(
+                    df, city, district, chart_type, time_range
+                )
                 
-                # 這裡是關鍵修改部分 - 確保將趨勢圖結果直接合併到最終結果中
+                # 處理結果
                 if trend_result["success"]:
                     result = {
                         "success": True,
-                        "message": "成功生成房價趨勢圖",
+                        "message": f"成功生成房價{chart_type}圖",
                         "original_text": query_text,
                         "result": trend_result["result"],
                         "dataframe": trend_result.get("dataframe"),
                         "query_type": QueryType.PLOT.value,
-                        "model_used": self.model_name
+                        "model_used": self.model_name,
+                        "chart_type": chart_type,
+                        "time_range": trend_result.get("time_range")
                     }
                     
-                    # 新增：確保將圖表相關信息添加到結果中
+                    # 確保將圖表相關信息添加到結果中
                     if trend_result.get("has_chart", False):
                         result["has_chart"] = True
                         result["chart_image"] = trend_result["chart_image"]
                         result["trend_direction"] = trend_result.get("trend_direction")
                     
                     return result
-            
-            # 否則嘗試使用 Agent 生成圖表
-            logger.info("使用 Pandas Agent 生成圖表")
-            agent_result = self.analyzer.execute_pandas_agent_query(
-                df, 
-                query_text, 
-                self.llm_service.llm,
-                generate_plot=True
-            )
-            
-            # 如果 Agent 成功生成圖表，返回結果
-            if agent_result["success"] and agent_result.get("result"):
-                return {
-                    "success": True,
-                    "message": "成功使用 Agent 處理製圖查詢",
-                    "original_text": query_text,
-                    "result": agent_result["result"],
-                    "query_type": QueryType.PLOT.value,
-                    "model_used": self.model_name
-                }
-            
-            # 如果以上方法都失敗，使用備用方法
-            logger.info("嘗試使用備用方法生成基本分析")
-            fallback_result = self.analyzer.generate_price_trend_chart(df, city, district)
-            
-            return {
-                "success": fallback_result.get("success", False),
-                "message": "使用備用方法處理製圖查詢",
-                "original_text": query_text,
-                "result": fallback_result.get("result", "無法生成有效的圖表和分析。"),
-                "dataframe": fallback_result.get("dataframe"),
-                "query_type": QueryType.PLOT.value,
-                "model_used": self.model_name
-            }
-            
+                else:
+                    return {
+                        "success": False,
+                        "message": trend_result.get("error", "生成圖表失敗"),
+                        "result": trend_result.get("result", "無法生成房價趨勢圖"),
+                        "query_type": QueryType.PLOT.value,
+                        "model_used": self.model_name
+                    }
         except Exception as e:
             logger.error(f"處理製圖查詢時出錯: {e}")
             logger.debug(f"錯誤堆疊: {traceback.format_exc()}")
-            return {}
+            return {
+                "success": False,
+                "message": f"處理製圖查詢時出錯: {str(e)}",
+                "result": f"生成圖表時發生錯誤: {str(e)}",
+                "query_type": QueryType.PLOT.value,
+                "model_used": self.model_name
+            }
     
     @traceable(name="realestate_query_processing")
     def process_query(self, text: str) -> Dict[str, Any]:

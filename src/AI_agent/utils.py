@@ -156,7 +156,7 @@ def parse_query_to_json(llm_service, query_text: str) -> Dict[str, Any]:
             parsed_output["時間範圍"] = {
                 "start_year": 2015,
                 "end_year": 2024,
-                "description": "2015-2024年(默認)"
+                "description": "2015-2024年"
             }
             logger.info(f"未指定時間範圍，使用默認值: {parsed_output['時間範圍']}")
         

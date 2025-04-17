@@ -2,7 +2,6 @@
 
 import logging
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 from typing import Dict, Any, List, Optional, Tuple
 from langchain_experimental.agents import create_pandas_dataframe_agent
@@ -316,187 +315,276 @@ class RealEstateAnalyzer:
             }
 
     @staticmethod
-    def generate_price_trend_chart(df: pd.DataFrame, city: str = None, district: str = None) -> Dict[str, Any]:
-        """生成房價趨勢圖表和分析。"""
-        logger.info(f"開始生成房價趨勢圖，城市: {city}, 區域: {district}")
-        print(f"[DEBUG] 開始生成房價趨勢圖，城市: {city}, 區域: {district}")
+    def generate_price_trend_chart(df: pd.DataFrame, city: str = None, district: str = None, 
+                                   chart_type: str = "trend", time_range: dict = None) -> Dict[str, Any]:
+        """生成房價趨勢圖表和分析。
+        
+        Args:
+            df: 房價數據框
+            city: 城市名稱
+            district: 區域名稱
+            chart_type: 圖表類型，預設為"trend"（趨勢圖）
+            time_range: 時間範圍，格式為 {'start_year': int, 'end_year': int, 'description': str}
+        
+        Returns:
+            包含分析結果和圖表的字典
+        """
+        logger.info(f"開始生成房價趨勢圖，城市: {city}, 區域: {district}, 圖表類型: {chart_type}")
         
         try:
             # 確保有交易年月日欄位
             if '交易年月日' not in df.columns:
-                print(f"[DEBUG] 數據缺少必要的交易年月日欄位")
                 return {
                     "success": False,
                     "error": "數據缺少必要的交易年月日欄位",
                     "result": "無法生成趨勢圖：數據格式不正確"
                 }
             
-            print(f"[DEBUG] 資料欄位檢查通過，開始過濾數據")
             # 處理區域過濾
             area_text = f"{city}"
             if district:
                 df = df[df['鄉鎮市區'] == district].copy()
                 area_text = f"{city}{district}"
                 if len(df) == 0:
-                    print(f"[DEBUG] 找不到 {district} 的資料")
                     return {
                         "success": False,
                         "error": f"找不到 {district} 的資料",
                         "result": f"找不到 {area_text} 的房價資料。"
                     }
             
-            print(f"[DEBUG] 過濾後數據量: {len(df)}")
+            # 創建一個數據副本以防止修改原始數據
+            analysis_df = df.copy()
             
-            # 轉換日期並依年月分組計算平均
-            df['交易年月'] = pd.to_datetime(df['交易年月日']).dt.strftime('%Y-%m')
-            monthly_avg = df.groupby('交易年月')['每坪單價'].agg(['mean', 'count']).reset_index()
-            monthly_avg = monthly_avg.sort_values('交易年月')
-            monthly_avg.columns = ['交易年月', '平均每坪單價', '交易數量']
-            monthly_avg['交易年月'] = pd.to_datetime(monthly_avg['交易年月'])
-
-            print(f"[DEBUG] 分組後數據點數量: {len(monthly_avg)}")
+            # 1. 清理缺失值：先過濾掉交易年月日為空的記錄
+            analysis_df = analysis_df.dropna(subset=['交易年月日'])
+            
+            # 2. 將交易日期轉換為日期格式
+            analysis_df['交易日期'] = pd.to_datetime(analysis_df['交易年月日'], errors='coerce')
+            
+            # 3. 過濾掉轉換失敗（產生NaT）的記錄
+            analysis_df = analysis_df.dropna(subset=['交易日期'])
+            
+            # 4. 使用pandas datetime屬性提取年份和月份（更穩健且符合最佳實踐）
+            analysis_df['年份'] = analysis_df['交易日期'].dt.year
+            analysis_df['月份'] = analysis_df['交易日期'].dt.month
+            
+            # 5. 根據時間範圍過濾數據
+            time_range_text = ""
+            if time_range and isinstance(time_range, dict):
+                start_year = time_range.get('start_year')
+                end_year = time_range.get('end_year')
+                
+                if start_year:
+                    analysis_df = analysis_df[analysis_df['年份'] >= start_year]
+                    
+                if end_year:
+                    analysis_df = analysis_df[analysis_df['年份'] <= end_year]
+                    
+                # 使用提供的描述或自動生成
+                if 'description' in time_range and time_range['description']:
+                    time_range_text = time_range['description']
+                elif start_year and end_year:
+                    if start_year == end_year:
+                        time_range_text = f"{start_year}年"
+                    else:
+                        time_range_text = f"{start_year}年至{end_year}年"
+            
+            if len(analysis_df) == 0:
+                return {
+                    "success": False,
+                    "error": "指定時間範圍內無資料",
+                    "result": f"找不到 {area_text} {time_range_text} 的房價資料。"
+                }
+            
+            # 6. 檢查數據年份範圍（使用安全的方法獲取最小最大值）
+            years = sorted(analysis_df['年份'].unique())
+            logger.info(f"數據年份範圍: {years[0]}-{years[-1]}, 共 {len(years)} 年")
+            
+            # 7. 判斷是否為單一年份
+            is_single_year = len(years) == 1
+            
+            # 8. 根據年份範圍決定分組方式，使用更穩健的方法
+            if is_single_year:
+                # 單一年度：按月份分組
+                logger.info(f"單一年度數據 ({years[0]}), 按月份分組")
+                
+                # 使用agg()進行分組彙總，更加清晰和彈性
+                time_grouped = analysis_df.groupby(['年份', '月份']).agg({
+                    '每坪單價': 'mean',
+                    '交易年月日': 'count'
+                }).reset_index()
+                
+                # 格式化月份標籤
+                time_grouped['時間標籤'] = time_grouped['月份'].map(lambda m: f"{int(m)}月")
+                time_grouped = time_grouped.sort_values(['年份', '月份'])
+                x_label = f"{int(years[0])}年月份"
+                
+                # 如果時間範圍文字為空，生成
+                if not time_range_text:
+                    time_range_text = f"{int(years[0])}年各月份"
+                
+            else:
+                # 多年數據：按年份分組
+                logger.info(f"多年度數據 ({years[0]}-{years[-1]}), 按年份分組")
+                
+                # 使用agg()進行分組彙總
+                time_grouped = analysis_df.groupby('年份').agg({
+                    '每坪單價': 'mean',
+                    '交易年月日': 'count'
+                }).reset_index()
+                
+                # 格式化年份標籤
+                time_grouped['時間標籤'] = time_grouped['年份'].map(lambda y: f"{int(y)}年")
+                time_grouped = time_grouped.sort_values('年份')
+                x_label = "年份"
+                
+                # 如果時間範圍文字為空，生成
+                if not time_range_text:
+                    time_range_text = f"{int(years[0])}年至{int(years[-1])}年"
+            
+            # 檢查時間分組後的數據，確保不含NA
+            time_grouped = time_grouped.dropna(subset=['每坪單價'])
             
             # 確保有足夠的資料點
-            if len(monthly_avg) < 2:
-                print(f"[DEBUG] 資料點不足以產生趨勢")
+            if len(time_grouped) < 2:
                 return {
                     "success": False,
                     "error": "資料點不足以產生趨勢",
-                    "result": f"{area_text}的資料點不足以分析趨勢。",
-                    "dataframe": monthly_avg
+                    "result": f"{area_text} {time_range_text} 的資料點不足以分析趨勢。",
+                    "dataframe": time_grouped
                 }
             
-            # 分析趨勢
-            first_price = monthly_avg['平均每坪單價'].iloc[0]
-            last_price = monthly_avg['平均每坪單價'].iloc[-1]
+            # 9. 分析趨勢，使用更安全的索引方法
+            first_price = time_grouped['每坪單價'].iloc[0]
+            last_price = time_grouped['每坪單價'].iloc[-1]
             price_change = ((last_price - first_price) / first_price) * 100
             trend_desc = "上升" if price_change > 0 else "下降"
             
             # 找出最高點和最低點
-            max_idx = monthly_avg['平均每坪單價'].idxmax()
-            min_idx = monthly_avg['平均每坪單價'].idxmin()
-            max_period = monthly_avg.loc[max_idx, '交易年月']
-            min_period = monthly_avg.loc[min_idx, '交易年月']
-            max_price = monthly_avg.loc[max_idx, '平均每坪單價']
-            min_price = monthly_avg.loc[min_idx, '平均每坪單價']
+            max_idx = time_grouped['每坪單價'].idxmax()
+            min_idx = time_grouped['每坪單價'].idxmin()
+            max_period = time_grouped.loc[max_idx, '時間標籤']
+            min_period = time_grouped.loc[min_idx, '時間標籤']
+            max_price = time_grouped.loc[max_idx, '每坪單價']
+            min_price = time_grouped.loc[min_idx, '每坪單價']
             
-            print(f"[DEBUG] 趨勢分析完成，趨勢方向: {trend_desc}, 變化幅度: {abs(price_change):.2f}%")
-            
-            # 生成結果描述
+            # 10. 生成結果描述
             result = (
-                f"{area_text}的房價從 {monthly_avg['交易年月'].iloc[0]} 到 {monthly_avg['交易年月'].iloc[-1]} "
+                f"{area_text}的房價在{time_range_text}"
                 f"整體呈{trend_desc}趨勢，變化幅度約 {abs(price_change):.2f}%。\n\n"
-                f"起始平均每坪單價: {first_price:,.2f} 元\n"
-                f"最終平均每坪單價: {last_price:,.2f} 元\n\n"
-                f"期間最高點出現在 {max_period}，價格為 {max_price:,.2f} 元/坪\n"
-                f"期間最低點出現在 {min_period}，價格為 {min_price:,.2f} 元/坪"
+                f"起始平均每坪單價: {first_price:,.0f} 元\n"
+                f"最終平均每坪單價: {last_price:,.0f} 元\n\n"
+                f"期間最高點出現在 {max_period}，價格為 {max_price:,.0f} 元/坪\n"
+                f"期間最低點出現在 {min_period}，價格為 {min_price:,.0f} 元/坪"
             )
             
-            # 創建圖表
+            # 11. 根據圖表類型生成不同圖表，使用matplotlib的最佳實踐
             try:
-                print(f"[DEBUG] 開始生成圖表")
                 # 設置中文字體支援
                 plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'Microsoft YaHei', 'SimHei', 'sans-serif']
                 plt.rcParams['axes.unicode_minus'] = False
                 
-                # 創建圖表
-                fig, ax = plt.subplots(figsize=(12, 6))
+                # 初始化高質量的圖表，使用constrained_layout改善佈局
+                fig, ax = plt.subplots(figsize=(12, 6), constrained_layout=True, dpi=100)
                 
-                # 繪製價格趨勢線
-                ax.plot(monthly_avg['交易年月'], monthly_avg['平均每坪單價'], marker='o', linestyle='-', color='#3498db', linewidth=2)
+                # 根據圖表類型繪製圖表
+                if chart_type == "trend" or chart_type == "line":
+                    # 使用標準化的時間序列繪圖方法
+                    ax.plot(range(len(time_grouped)), time_grouped['每坪單價'], 
+                            marker='o', linestyle='-', color='#3498db', linewidth=2,
+                            label=f"{area_text}房價趨勢")
+                    
+                    # 標記最高點和最低點
+                    max_pos = time_grouped.index.get_loc(max_idx)
+                    min_pos = time_grouped.index.get_loc(min_idx)
+                    
+                    ax.scatter([max_pos], [max_price], color='red', s=100, zorder=5, 
+                               label=f'最高點: {max_price:,.0f}元/坪')
+                    ax.scatter([min_pos], [min_price], color='green', s=100, zorder=5, 
+                               label=f'最低點: {min_price:,.0f}元/坪')
+                    
+                elif chart_type == "bar":
+                    # 使用統一的方法創建柱狀圖
+                    bars = ax.bar(range(len(time_grouped)), time_grouped['每坪單價'], 
+                                  color='#3498db', alpha=0.7, width=0.7)
+                    
+                    # 在最高和最低點的柱狀圖上標記
+                    bars[time_grouped.index.get_loc(max_idx)].set_color('red')
+                    bars[time_grouped.index.get_loc(min_idx)].set_color('green')
+                    
+                    # 添加數據標籤（使用更簡潔的方法）
+                    for i, bar in enumerate(bars):
+                        height = bar.get_height()
+                        ax.text(bar.get_x() + bar.get_width()/2., height,
+                                f'{int(height):,}',
+                                ha='center', va='bottom', rotation=0)
                 
-                # 標記最高點和最低點
-                ax.scatter(max_period, max_price, color='red', s=100, zorder=5, label=f'最高點: {max_price:,.0f}元/坪')
-                ax.scatter(min_period, min_price, color='green', s=100, zorder=5, label=f'最低點: {min_price:,.0f}元/坪')
+                # 12. 設置x軸刻度和標籤
+                ax.set_xticks(range(len(time_grouped)))
+                ax.set_xticklabels(time_grouped['時間標籤'], rotation=45 if len(time_grouped) > 6 else 0)
                 
-                print(f"[DEBUG] 繪製圖表主體完成")
-                
-                # 設置標題和軸標籤
-                ax.set_title(f'{area_text}房價趨勢圖', fontsize=16)
-                ax.set_xlabel('交易年月', fontsize=12)
-                ax.set_ylabel('平均每坪單價 (元)', fontsize=12)
+                # 13. 共用的圖表設置，使用matplotlib的最佳實踐
+                ax.set_title(f'{area_text}房價趨勢圖 ({time_range_text})', fontsize=16, pad=15)
+                ax.set_xlabel(x_label, fontsize=12, labelpad=10)
+                ax.set_ylabel('平均每坪單價 (元)', fontsize=12, labelpad=10)
                 
                 # 格式化y軸為千分位
                 ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{int(x):,}'))
                 
-                # 設置x軸刻度，間隔顯示避免擁擠
-                total_months = len(monthly_avg)
-                if total_months > 12:
-                    step = total_months // 12 + 1
-                    ax.set_xticks(monthly_avg['交易年月'][::step])
-                    ax.set_xticklabels(monthly_avg['交易年月'][::step], rotation=45)
-                else:
-                    ax.set_xticks(monthly_avg['交易年月'])
-                    ax.set_xticklabels(monthly_avg['交易年月'], rotation=45)
+                # 添加網格線（使用更現代的樣式）
+                ax.grid(True, linestyle='--', alpha=0.6, axis='y')
                 
-                # 添加網格線
-                ax.grid(True, linestyle='--', alpha=0.7)
+                # 添加圖例（優化位置和樣式）
+                if chart_type in ["trend", "line"]:
+                    ax.legend(loc='upper left', frameon=True, framealpha=0.9)
                 
-                # 添加圖例
-                ax.legend()
-                
-                # 調整布局
-                plt.tight_layout()
-                
-                print(f"[DEBUG] 圖表格式設置完成，準備保存")
-                
-                # 直接保存圖像到字節流
+                # 14. 直接保存圖像到字節流
                 import io
                 buf = io.BytesIO()
                 plt.savefig(buf, format='png', dpi=100)
                 buf.seek(0)
                 
-                print(f"[DEBUG] 圖表已保存到BytesIO對象，大小: {len(buf.getvalue())} 字節")
-                
                 # 關閉圖表以釋放資源
                 plt.close(fig)
                 
+                # 15. 創建簡化版的dataframe用於顯示
+                # 創建更加清晰美觀的DataFrame用於顯示
+                display_cols = ['月份' if is_single_year else '年份', '平均每坪單價', '交易數量']
+                
+                if is_single_year:
+                    display_df = pd.DataFrame({
+                        '月份': time_grouped['月份'].apply(lambda x: int(x)),
+                        '平均每坪單價': time_grouped['每坪單價'].round(0).astype(int),
+                        '交易數量': time_grouped['交易年月日'].astype(int)
+                    })
+                else:
+                    display_df = pd.DataFrame({
+                        '年份': time_grouped['年份'].apply(lambda x: int(x)),
+                        '平均每坪單價': time_grouped['每坪單價'].round(0).astype(int),
+                        '交易數量': time_grouped['交易年月日'].astype(int)
+                    })
+                
+                # 16. 返回完整的結果字典
                 result_dict = {
                     "success": True,
                     "result": result,
-                    "dataframe": monthly_avg,
+                    "dataframe": display_df,  # 使用簡化版的 dataframe
                     "trend_direction": trend_desc,
                     "price_change_percent": price_change,
                     "chart_image": buf,  # 直接傳遞BytesIO對象
-                    "has_chart": True
+                    "has_chart": True,
+                    "chart_type": chart_type,
+                    "time_range": time_range_text
                 }
                 
-                print(f"[DEBUG] 返回結果字典，包含圖表: has_chart={result_dict['has_chart']}")
-                logger.info(f"房價趨勢圖生成成功，包含圖表: has_chart={result_dict['has_chart']}")
-                
+                logger.info(f"房價趨勢圖生成成功")
                 return result_dict
                 
             except Exception as chart_error:
                 logger.error(f"生成圖表時出錯: {chart_error}")
-                print(f"[DEBUG-ERROR] 生成圖表時出錯: {chart_error}")
-                import traceback
-                print(f"[DEBUG-ERROR] 圖表錯誤堆疊: {traceback.format_exc()}")
-                
-                # 即使圖表生成失敗也返回數據分析結果
-                return {
-                    "success": True,
-                    "result": result + "\n\n(圖表生成失敗，僅顯示數據分析結果)",
-                    "dataframe": monthly_avg,
-                    "trend_direction": trend_desc,
-                    "price_change_percent": price_change,
-                    "chart_error": str(chart_error),
-                    "has_chart": False
-                }
                 
         except Exception as e:
             logger.error(f"生成房價趨勢圖出錯: {e}")
-            print(f"[DEBUG-ERROR] 生成房價趨勢圖出錯: {e}")
-            import traceback
-            trace = traceback.format_exc()
-            logger.debug(f"錯誤堆疊: {trace}")
-            print(f"[DEBUG-ERROR] 錯誤堆疊: {trace}")
-            
-            return {
-                "success": False,
-                "error": str(e),
-                "result": f"生成房價趨勢圖時發生錯誤: {str(e)}",
-                "has_chart": False
-            }
 
     @staticmethod
     def filter_data_by_attributes(df: pd.DataFrame, filters: Dict[str, Any]) -> pd.DataFrame:
