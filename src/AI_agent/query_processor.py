@@ -57,7 +57,7 @@ class RealEstateQueryProcessor:
         self.data_loader = DataLoader()
         self.analyzer = RealEstateAnalyzer()  # 創建分析器實例
 
-    def handle_price_query(self, text: str, parsed_params=None) -> Dict[str, Any]:
+    def handle_average_price_query(self, text: str, parsed_params=None) -> Dict[str, Any]:
         """
         處理房價查詢，使用 JSON 模式解析查詢參數
 
@@ -234,7 +234,7 @@ class RealEstateQueryProcessor:
         # 根據類型分發處理
         if query_type == QueryType.AVERAGE_PRICE:
             # 使用已解析的參數處理房價查詢
-            direct_result = self.handle_price_query(text, parsed_params)
+            direct_result = self.handle_average_price_query(text, parsed_params)
             if direct_result:
                 return direct_result
             logger.info("直接處理房價查詢失敗，轉用一般方法")

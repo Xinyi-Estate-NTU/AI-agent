@@ -28,12 +28,12 @@ INPUT_TYPE_DATA_ANALYSIS = "data_analysis"
 # 查詢類型常量
 class QueryType(Enum):
     PLOT = "plot"  # 製圖
-    AVERAGE_PRICE = "price"  # 平均價格
+    AVERAGE_PRICE = "average_price"  # 平均價格
     OTHER = "other"  # 其他類型
 
 
 # 平均價格相關關鍵詞
-PRICE_KEYWORDS = [
+AVERAGE_PRICE_KEYWORDS = [
     "房價",
     "價格",
     "行情",
@@ -106,7 +106,7 @@ LANGSMITH_EXTRA = {
 #########################################################
 # 地理位置資料
 #########################################################
-# 台北市行政區列表
+# 臺北市行政區列表
 TAIPEI_DISTRICTS = [
     "大安區",
     "信義區",
@@ -154,12 +154,9 @@ NEW_TAIPEI_DISTRICTS = [
     "烏來區",
 ]
 
-# 合併兩市行政區，用於包含所有可能的區域搜索
-ALL_DISTRICTS = TAIPEI_DISTRICTS + NEW_TAIPEI_DISTRICTS
-
 # 區域簡稱映射
 DISTRICT_MAPPING = {
-    # 台北市
+    # 臺北市
     "大安": "大安區",
     "信義": "信義區",
     "中正": "中正區",
@@ -186,18 +183,18 @@ DISTRICT_MAPPING = {
 }
 
 # 有效的城市列表 (統一命名格式)
-VALID_CITIES = ["台北市", "新北市"]
+VALID_CITIES = ["臺北市", "新北市"]
 
 # 有效的行政區映射 (擴展 DISTRICT_MAPPING)
-VALID_DISTRICTS = {"台北市": TAIPEI_DISTRICTS, "新北市": NEW_TAIPEI_DISTRICTS}
+VALID_DISTRICTS = {"臺北市": TAIPEI_DISTRICTS, "新北市": NEW_TAIPEI_DISTRICTS}
 
 # 結構化輸出回應 schemas 配置
 RESPONSE_SCHEMAS_CONFIG = [
     {
         "name": "城市",
-        "description": "查詢的城市，必須是以下城市之一：台北市、新北市。注意：統一使用「台北市」而非「臺北市」",
+        "description": "查詢的城市，必須是以下城市之一：臺北市、新北市。注意：統一使用「臺北市」而非「台北市」",
         "type": "string",
-        "examples": ["台北市", "新北市"],
+        "examples": ["臺北市", "新北市"],
     },
     {
         "name": "鄉鎮市區",
@@ -256,7 +253,7 @@ QUERY_PARSING_TEMPLATE = """
 
 【格式要求】
 1. 所有數字必須使用阿拉伯數字，禁止使用中文數字
-2. 地名統一使用「台北市」而非「臺北市」
+2. 地名統一使用「臺北市」而非「台北市」
 3. 電梯狀態只能使用「有」或「無」
 4. 房、廳、衛的數量必須是整數
 5. 未提及的字段必須返回null，不要猜測或默認值
@@ -268,14 +265,14 @@ QUERY_PARSING_TEMPLATE = """
 3. 如果用戶完全沒有提及任何時間範圍，將「時間範圍」設為null
 
 【有效的城市和行政區】
-有效城市: 台北市, 新北市
-台北市行政區: {taipei_districts}
+有效城市: 臺北市, 新北市
+臺北市行政區: {taipei_districts}
 新北市行政區: {new_taipei_districts}
 
 【輸出範例】
 範例1 - 完整查詢:
 {{
-  "城市": "台北市",
+  "城市": "臺北市",
   "鄉鎮市區": "大安區",
   "時間範圍": {{
     "start_year": 2022,

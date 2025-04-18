@@ -10,9 +10,8 @@ from langchain.prompts import ChatPromptTemplate
 from .config import (
     TAIPEI_DISTRICTS,
     NEW_TAIPEI_DISTRICTS,
-    ALL_DISTRICTS,
     DISTRICT_MAPPING,
-    PRICE_KEYWORDS,
+    AVERAGE_PRICE_KEYWORDS,
     PLOT_KEYWORDS,
     QueryType,
     CURRENT_YEAR,
@@ -92,12 +91,12 @@ def identify_query_type(text: str, parsed_params=None, llm_service=None) -> Quer
         return QueryType.PLOT
 
     # 規則2: 平均價格查詢
-    if any(keyword in text for keyword in PRICE_KEYWORDS):
+    if any(keyword in text for keyword in AVERAGE_PRICE_KEYWORDS):
         if has_city or has_district:
             return QueryType.AVERAGE_PRICE
 
     # 規則3: 更複雜的平均價格查詢模式
-    price_patterns = [
+    average_price_patterns = [
         r"(新北市|台北市|臺北市).*?(房價|價格|行情|均價|單價|多少錢)",
         r"(房價|價格|行情|均價|單價).*?(新北市|台北市|臺北市)",
         r"(大安|信義|中正|松山|大同|萬華|文山|南港|內湖|士林|北投|板橋|三重|中和|永和|新莊|新店|汐止|淡水).*?(房價|價格|行情|均價|單價)",
@@ -105,7 +104,7 @@ def identify_query_type(text: str, parsed_params=None, llm_service=None) -> Quer
         r"(大安區|信義區|中正區|松山區|大同區|萬華區|文山區|南港區|內湖區|士林區|北投區|板橋區|三重區|中和區|永和區|新莊區|新店區|汐止區|淡水區).*?(多少|如何)",
     ]
 
-    for pattern in price_patterns:
+    for pattern in average_price_patterns:
         if re.search(pattern, text):
             return QueryType.AVERAGE_PRICE
 
