@@ -1,5 +1,4 @@
 # AI_agent/query_processor.py
-import json
 import logging
 import re
 from typing import Optional, Dict, Any
@@ -9,7 +8,6 @@ from langsmith import traceable
 from langchain_groq import ChatGroq
 from langchain_experimental.agents import create_pandas_dataframe_agent
 from langchain.agents.agent_types import AgentType
-import json
 
 from .config import DEFAULT_MODEL, QueryType
 from .data_loader import DataLoader
