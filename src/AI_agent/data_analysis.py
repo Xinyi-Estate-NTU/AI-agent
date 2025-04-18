@@ -183,8 +183,6 @@ class RealEstateAnalyzer:
         # 構建更豐富的結果文本 (Markdown 格式)
         formatted_result = f"基於 {count_formatted} 筆交易記錄，{city}{condition_text} 的平均房價數據如下：\n"
         formatted_result += f"- 每坪平均價格: {avg_price_ping_formatted}\n"
-        formatted_result += f"- 平均房屋總價: {avg_total_price_formatted}\n"
-        formatted_result += f"- 平均房屋大小: {avg_size_formatted}"
 
         # 添加額外統計信息（如果有）
         if stats and "median" in stats:
@@ -192,7 +190,10 @@ class RealEstateAnalyzer:
                 stats["median"] / 10000, 1
             )  # 轉換為萬元並四捨五入到小數點後一位
             median_formatted = f"{median_wan} 萬元"
-            formatted_result += f"\n- 中位數每坪房價: {median_formatted}"
+            formatted_result += f"\n- 每坪房價的中位數: {median_formatted}"
+
+        formatted_result += f"- 平均房屋總價: {avg_total_price_formatted}\n"
+        formatted_result += f"- 平均房屋大小: {avg_size_formatted}"
 
         # 注意：已移除價格範圍信息
 

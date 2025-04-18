@@ -57,7 +57,9 @@ class RealEstateQueryProcessor:
         self.data_loader = DataLoader()
         self.analyzer = RealEstateAnalyzer()  # 創建分析器實例
 
-    def handle_average_price_query(self, text: str, parsed_params=None) -> Dict[str, Any]:
+    def handle_average_price_query(
+        self, text: str, parsed_params=None
+    ) -> Dict[str, Any]:
         """
         處理房價查詢，使用 JSON 模式解析查詢參數
 

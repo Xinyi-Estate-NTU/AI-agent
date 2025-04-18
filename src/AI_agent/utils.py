@@ -169,10 +169,7 @@ def parse_query_to_json(llm_service, query_text: str) -> Dict[str, Any]:
                         )
 
         # 確保有時間範圍 - 如果沒有指定或為null，默認為2015-2024
-        if "時間範圍" not in parsed_output or parsed_output["時間範圍"] in [
-            None,
-            "null",
-        ]:
+        if parsed_output["時間範圍"] in [None, "null"]:
             parsed_output["時間範圍"] = {
                 "start_year": 2015,
                 "end_year": 2024,
