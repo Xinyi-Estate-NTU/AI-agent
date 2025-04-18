@@ -2,7 +2,14 @@
 """Taiwan Real Estate AI Agent module."""
 
 # 匯出主要API，方便直接從包導入
-from .api import chat_pipeline, query_sales_data, process_real_estate_query
+from .api import (
+    chat_pipeline,
+    query_sales_data,
+    process_real_estate_query,
+    get_default_model,
+    get_available_models,
+    get_conversation_memory,
+)
 from .config import (
     MODELS,
     DEFAULT_MODEL,

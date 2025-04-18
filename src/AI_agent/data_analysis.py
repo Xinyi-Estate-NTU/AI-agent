@@ -190,10 +190,11 @@ class RealEstateAnalyzer:
                 stats["median"] / 10000, 1
             )  # 轉換為萬元並四捨五入到小數點後一位
             median_formatted = f"{median_wan} 萬元"
-            formatted_result += f"\n- 每坪房價的中位數: {median_formatted}"
+            formatted_result += f"\n- 每坪房價的中位數: {median_formatted}\n"
 
         formatted_result += f"- 平均房屋總價: {avg_total_price_formatted}\n"
-        formatted_result += f"- 平均房屋大小: {avg_size_formatted}"
+        formatted_result += f"- 平均房屋大小: {avg_size_formatted}\n"
+        formatted_result += f"\n資料來源：內政部實價登錄資料"
 
         # 注意：已移除價格範圍信息
 

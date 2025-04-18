@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 import pandas as pd
-from AI_agent.api import (
+from AI_agent import (
     chat_pipeline,
     get_default_model,
     get_available_models,
@@ -64,9 +64,9 @@ with st.sidebar:
 
     st.markdown("📩 聯絡我們: support@example.com")
     st.markdown("💡 你可以詢問有關台灣房地產的問題，例如：")
-    st.markdown("- 台北市大安區的平均房價")
-    st.markdown("- 新北市哪個區域的房價最高")
-    st.markdown("- 2020年信義區的房價趨勢")
+    st.markdown("- 台北市 2019-2024 三房兩廳的平均房價")
+    st.markdown("- 新北市 2018-2023 的房價趨勢")
+    st.markdown("- 台北市信義區的房價")
 
 # ------ 初始化 Session State ------
 if "messages" not in st.session_state:
