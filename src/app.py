@@ -1,13 +1,11 @@
 import streamlit as st
 import os
 import pandas as pd
-from AI_agent import (
-    RealEstateQueryProcessor,
+from AI_agent.api import (
     chat_pipeline,
-    CONVERSATION_MEMORY,
-    DEFAULT_MODEL,
-    MODELS,
-    logger,
+    get_default_model,
+    get_available_models,
+    get_conversation_memory,
 )
 import logging
 
@@ -38,6 +36,11 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+# 通過API獲取配置
+DEFAULT_MODEL = get_default_model()
+MODELS = get_available_models()
+CONVERSATION_MEMORY = get_conversation_memory()
 
 # ------ 側邊欄 (Sidebar) 設計 ------
 with st.sidebar:
@@ -70,15 +73,14 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 if "memory" not in st.session_state:
-    # 使用query_analyzer.py裡的ConversationBufferMemory
+    # 使用API獲取對話記憶
     st.session_state.memory = CONVERSATION_MEMORY
 
 if "session_id" not in st.session_state:
     st.session_state.session_id = f"thread-{os.urandom(4).hex()}"
 
-if "processor" not in st.session_state:
-    # 初始化查詢處理器
-    st.session_state.processor = RealEstateQueryProcessor(DEFAULT_MODEL)
+if "selected_model" not in st.session_state:
+    st.session_state.selected_model = DEFAULT_MODEL
 
 # ------ 主畫面 UI ------
 st.title("🏠 台灣房地產資料助理")
@@ -120,17 +122,18 @@ if user_question:
     # 處理AI回應
     with st.spinner("AI分析中，請稍候..."):
         try:
-            # 處理器
-            processor = st.session_state.processor
+            # 使用chat_pipeline處理查詢
+            model_name = st.session_state.selected_model
+            memory = st.session_state.memory
+            logger.info(f"使用模型: {model_name}")
 
-            # 更新處理器的模型
-            if processor.model_name != st.session_state.selected_model:
-                processor = RealEstateQueryProcessor(st.session_state.selected_model)
-                st.session_state.processor = processor
-                logger.info(f"更新模型: {st.session_state.selected_model}")
-
-            # 處理查詢
-            result = processor.process_query(user_question)
+            result = chat_pipeline(
+                question=user_question,
+                model_name=model_name,
+                memory=memory,
+                get_chat_history=True,
+                process_real_estate=True,
+            )
 
             # 添加日誌，記錄結果中是否包含解析的參數
             if result.get("query_params"):
@@ -181,7 +184,9 @@ if user_question:
                 if dataframe is not None and not dataframe.empty:
                     st.dataframe(dataframe, use_container_width=True)
             else:
-                answer = "抱歉，查詢處理失敗。"
+                answer = (
+                    result["result"] if "result" in result else "抱歉，查詢處理失敗。"
+                )
                 st.session_state.messages.append(
                     {"role": "assistant", "content": answer}
                 )
@@ -206,7 +211,4 @@ if st.button("清空對話"):
     st.session_state.messages = []
     st.session_state.memory = CONVERSATION_MEMORY
     st.session_state.session_id = f"thread-{os.urandom(4).hex()}"
-    st.session_state.processor = RealEstateQueryProcessor(
-        st.session_state.selected_model
-    )
     st.rerun()
