@@ -23,17 +23,47 @@ CITY_MAPPING = {
 # 行政區對應 (郵遞區號)
 DISTRICT_ZIP_MAPPING = {
     # 台北市
-    "中正區": "100", "大同區": "103", "中山區": "104", "松山區": "105",
-    "大安區": "106", "萬華區": "108", "信義區": "110", "士林區": "111", 
-    "北投區": "112", "內湖區": "114", "南港區": "115", "文山區": "116",
+    "中正區": "100",
+    "大同區": "103",
+    "中山區": "104",
+    "松山區": "105",
+    "大安區": "106",
+    "萬華區": "108",
+    "信義區": "110",
+    "士林區": "111",
+    "北投區": "112",
+    "內湖區": "114",
+    "南港區": "115",
+    "文山區": "116",
     # 新北市
-    "萬里區": "207", "金山區": "208", "板橋區": "220", "汐止區": "221",
-    "深坑區": "222", "石碇區": "223", "瑞芳區": "224", "平溪區": "226",
-    "雙溪區": "227", "貢寮區": "228", "新店區": "231", "坪林區": "232",
-    "烏來區": "233", "永和區": "234", "中和區": "235", "土城區": "236",
-    "三峽區": "237", "樹林區": "238", "鶯歌區": "239", "三重區": "241",
-    "新莊區": "242", "泰山區": "243", "林口區": "244", "蘆洲區": "247",
-    "五股區": "248", "八里區": "249", "淡水區": "251", "三芝區": "252",
+    "萬里區": "207",
+    "金山區": "208",
+    "板橋區": "220",
+    "汐止區": "221",
+    "深坑區": "222",
+    "石碇區": "223",
+    "瑞芳區": "224",
+    "平溪區": "226",
+    "雙溪區": "227",
+    "貢寮區": "228",
+    "新店區": "231",
+    "坪林區": "232",
+    "烏來區": "233",
+    "永和區": "234",
+    "中和區": "235",
+    "土城區": "236",
+    "三峽區": "237",
+    "樹林區": "238",
+    "鶯歌區": "239",
+    "三重區": "241",
+    "新莊區": "242",
+    "泰山區": "243",
+    "林口區": "244",
+    "蘆洲區": "247",
+    "五股區": "248",
+    "八里區": "249",
+    "淡水區": "251",
+    "三芝區": "252",
     "石門區": "253",
 }
 
@@ -62,13 +92,13 @@ TAG_MAPPING = {
 # 設施標籤查詢映射
 AMENITY_TAG_MAPPING = {
     "近學校": "16",
-    "近公園": "19", 
-    "有游泳池": "9", 
+    "近公園": "19",
+    "有游泳池": "9",
     "有健身房": "8",
     "近捷運站": "17",
     "近市場": "18",
     "有陽台": "4",
-    "有警衛管理": "12"
+    "有警衛管理": "12",
 }
 
 # 系統提示詞 - 參數提取
@@ -98,102 +128,99 @@ EXTRACT_SCHEMA = {
         {
             "name": "property_name",
             "selector": ".//div[contains(@class, 'LongInfoCard_Type_Name')]",
-            "type": "text"
+            "type": "text",
         },
         {
-            "name": "community_name", 
+            "name": "community_name",
             "selector": ".//span[contains(@class, 'longInfoCard_communityName')]",
-            "type": "text"
+            "type": "text",
         },
         {
             "name": "location",
             "selector": ".//div[contains(@class, 'LongInfoCard_Type_Address')]//span[1]",
-            "type": "text"
+            "type": "text",
         },
         {
             "name": "property_age",
             "selector": ".//div[contains(@class, 'LongInfoCard_Type_Address')]//span[2]",
-            "type": "text"
+            "type": "text",
         },
         {
             "name": "property_type",
             "selector": ".//div[contains(@class, 'LongInfoCard_Type_Address')]//span[3]",
-            "type": "text"
+            "type": "text",
         },
         {
             "name": "total_size",
             "selector": ".//div[contains(@class, 'LongInfoCard_Type_HouseInfo')]//span[1]",
-            "type": "text"
+            "type": "text",
         },
         {
             "name": "main_size",
             "selector": ".//div[contains(@class, 'LongInfoCard_Type_HouseInfo')]//span[contains(text(), '主 + 陽')]",
-            "type": "text"
+            "type": "text",
         },
         {
             "name": "layout",
             "selector": ".//div[contains(@class, 'LongInfoCard_Type_HouseInfo')]//span[contains(text(), '房')]",
-            "type": "text"
+            "type": "text",
         },
         {
             "name": "floor",
             "selector": ".//div[contains(@class, 'LongInfoCard_Type_HouseInfo')]//span[contains(text(), '樓')]",
-            "type": "text"
+            "type": "text",
         },
         {
             "name": "parking",
             "selector": ".//span[contains(@class, 'LongInfoCard_Type_Parking')]/span",
-            "type": "text"
+            "type": "text",
         },
         {
             "name": "original_price",
             "selector": ".//span[contains(@style, 'text-decoration: line-through')]",
-            "type": "text"
+            "type": "text",
         },
         {
             "name": "current_price",
             "selector": ".//span[contains(@style, 'font-weight: 500; color: rgb(221, 37, 37)')]",
-            "type": "text"
+            "type": "text",
         },
         {
             "name": "price_unit",
             "selector": ".//span[contains(@style, 'font-weight: 500; color: rgb(221, 37, 37)')]/following-sibling::span[1]",
-            "type": "text"
+            "type": "text",
         },
         {
             "name": "discount_percentage",
             "selector": ".//div[contains(@class, 'longInfoCard_lowprice')]//span[not(contains(@style, 'color'))]",
-            "type": "text"
+            "type": "text",
         },
         {
             "name": "features",
             "selector": ".//span[contains(@class, 'longInfoCard_specificTag')]",
             "type": "list",
-            "fields": [
-                {"name": "feature", "type": "text"}
-            ]
+            "fields": [{"name": "feature", "type": "text"}],
         },
         {
             "name": "interest_count",
             "selector": ".//span[contains(@class, 'longInfoCard_clicks')]//span[contains(@style, 'color: rgb(222, 37, 37)')]",
-            "type": "text"
+            "type": "text",
         },
         {
             "name": "has_manager_recommend",
             "selector": ".//div[contains(@class, 'longInfoCard_bossgreat')]",
-            "type": "boolean"
+            "type": "boolean",
         },
         {
             "name": "has_3d_vr",
             "selector": ".//div[contains(@class, 'LongInfoCard_VRicon')]/img",
-            "type": "boolean"
+            "type": "boolean",
         },
         {
             "name": "image_url",
             "selector": ".//div[contains(@class, 'longInfoCard_largeImg')]/img",
             "type": "attribute",
-            "attribute": "src"
-        }
-    ]
+            "attribute": "src",
+        },
+    ],
 }
-

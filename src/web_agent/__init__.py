@@ -20,12 +20,12 @@ from .api import (
     process_web_query,
     get_default_model,
     get_available_models,
-    get_conversation_memory
+    get_conversation_memory,
 )
 
 __all__ = [
-    'process_web_query',
-    'get_default_model',
-    'get_available_models',
-    'get_conversation_memory'
+    "process_web_query",
+    "get_default_model",
+    "get_available_models",
+    "get_conversation_memory",
 ]

@@ -8,6 +8,7 @@ from data_agent import (
     get_available_models,
     get_conversation_memory,
 )
+
 # Import the web agent
 from web_agent import process_web_query
 import logging
@@ -17,10 +18,7 @@ import logging
 #######################
 
 # Configure root logger once
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(levelname)s:%(name)s:%(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
 
 # Prevent duplicate logs in imported modules
 for logger_name in logging.root.manager.loggerDict:
@@ -88,6 +86,7 @@ DEFAULT_MODEL = get_default_model()
 MODELS = get_available_models()
 CONVERSATION_MEMORY = get_conversation_memory()
 
+
 # ------ 初始化 Session State ------
 def initialize_session_state():
     """初始化Session State變數"""
@@ -109,8 +108,10 @@ def initialize_session_state():
     if "property_data" not in st.session_state:
         st.session_state.property_data = None
 
+
 # 初始化
 initialize_session_state()
+
 
 # ------ 側邊欄 (Sidebar) 設計 ------
 def render_sidebar():
@@ -137,7 +138,10 @@ def render_sidebar():
         # 代理選擇
         agent_options = ["資料分析代理", "網頁搜尋代理"]
         selected_agent = st.radio("選擇代理類型", agent_options)
-        if "selected_agent" not in st.session_state or st.session_state.selected_agent != selected_agent:
+        if (
+            "selected_agent" not in st.session_state
+            or st.session_state.selected_agent != selected_agent
+        ):
             st.session_state.selected_agent = selected_agent
             # 切換代理時清空房產數據
             if selected_agent == "資料分析代理":
@@ -147,6 +151,7 @@ def render_sidebar():
         st.markdown("- 台北市 2019-2024 三房兩廳的平均房價 (資料分析)")
         st.markdown("- 幫我找新北市新店區的公寓大樓 (網頁搜尋)")
         st.markdown("- 幫我搜尋近捷運站的台北市信義區房屋 (網頁搜尋)")
+
 
 # 顯示對話歷史
 def render_chat_history():
@@ -165,15 +170,17 @@ def render_chat_history():
                 if message.get("has_chart", False) and "chart_image" not in message:
                     st.info("此回應包含趨勢圖表。請重新提問以查看完整圖表。")
 
+
 ########################
 ### 2. DATA AGENT 部分 ###
 ########################
+
 
 # 處理資料分析查詢
 def handle_data_agent_query(user_question, model_name, memory):
     """處理資料分析代理的查詢"""
     logger.info(f"處理資料分析查詢: '{user_question}'")
-    
+
     # 使用原來的數據分析代理
     result = chat_pipeline(
         question=user_question,
@@ -182,8 +189,9 @@ def handle_data_agent_query(user_question, model_name, memory):
         get_chat_history=True,
         process_real_estate=True,
     )
-    
+
     return result
+
 
 # 顯示資料分析結果
 def render_data_agent_result(result):
@@ -204,7 +212,7 @@ def render_data_agent_result(result):
 
         # 添加圖表標記
         message_data["has_chart"] = has_chart
-        
+
         # 處理數據表格
         dataframe = result.get("dataframe")
         if dataframe is not None:
@@ -234,25 +242,26 @@ def render_data_agent_result(result):
             st.dataframe(dataframe, use_container_width=True)
     else:
         answer = result["result"] if "result" in result else "抱歉，查詢處理失敗。"
-        st.session_state.messages.append(
-            {"role": "assistant", "content": answer}
-        )
+        st.session_state.messages.append({"role": "assistant", "content": answer})
         with st.chat_message("assistant"):
             st.markdown(answer)
+
 
 ########################
 ### 3. WEB AGENT 部分 ###
 ########################
 
+
 # 處理網頁搜尋查詢
 async def handle_web_agent_query(user_question, model_name):
     """處理網頁搜尋代理的查詢"""
     logger.info(f"處理網頁搜尋查詢: '{user_question}'")
-    
+
     # 使用新的網頁搜尋代理
     web_result = await process_web_query(user_question, model_name, scrape_results=True)
-    
+
     return web_result
+
 
 # 顯示網頁搜尋結果
 def render_web_agent_result(web_result, memory, user_question):
@@ -263,143 +272,165 @@ def render_web_agent_result(web_result, memory, user_question):
             st.session_state.property_data = web_result["data"]
         else:
             st.session_state.property_data = None
-        
+
         # 準備回應
-        explanation = web_result.get('explanation', '')
+        explanation = web_result.get("explanation", "")
         properties_count = len(web_result["data"]) if web_result.get("data") else 0
-        
+
         if properties_count > 0:
             answer = f"已為您搜尋房產信息，找到 {properties_count} 筆符合條件的房產：\n\n{explanation}"
         else:
             answer = f"已為您搜尋房產信息：\n\n{explanation}\n\n但沒有找到完全符合條件的房產。"
-        
+
         result = {
             "success": True,
             "result": answer,
         }
-        
+
         # 記錄到記憶體
         if memory is not None:
             memory.chat_memory.add_user_message(user_question)
             memory.chat_memory.add_ai_message(result["result"])
-            
+
         # 將回應添加到對話歷史
         st.session_state.messages.append({"role": "assistant", "content": answer})
-        
+
         # 顯示助理回應
         with st.chat_message("assistant"):
             st.markdown(answer)
-        
+
         # 顯示房產列表
         render_property_listings()
-        
+
         # 刷新頁面以確保所有內容正確顯示
         st.rerun()
     else:
         error_msg = f"抱歉，無法解析您的搜尋請求：{web_result.get('error', '未知錯誤')}"
         # 清空房產數據
         st.session_state.property_data = None
-        
+
         # 將錯誤回應添加到對話歷史
         st.session_state.messages.append({"role": "assistant", "content": error_msg})
-        
+
         # 顯示錯誤回應
         with st.chat_message("assistant"):
             st.markdown(error_msg)
 
+
 # 顯示房產列表
 def render_property_listings():
     """渲染房產列表"""
-    if st.session_state.property_data is not None and len(st.session_state.property_data) > 0:
+    if (
+        st.session_state.property_data is not None
+        and len(st.session_state.property_data) > 0
+    ):
         st.header(f"找到 {len(st.session_state.property_data)} 筆房產資訊")
-        
+
         # 遍歷房產數據並顯示
         for property_item in st.session_state.property_data:
             with st.container():
                 # 創建一個卡片樣式的容器
-                with st.expander(property_item.get('property_name', '未知'), expanded=True):
+                with st.expander(
+                    property_item.get("property_name", "未知"), expanded=True
+                ):
                     # 使用兩列佈局 - 圖片和資訊
                     col1, col2 = st.columns([1, 1])
-                    
+
                     with col1:
                         # 處理圖片URL
-                        image_url = property_item.get('image_url', '')
+                        image_url = property_item.get("image_url", "")
                         if image_url:
                             st.image(image_url, use_container_width=True)
-                    
+
                     with col2:
                         # 顯示主要信息
-                        if property_item.get('community_name'):
-                            st.markdown(f"**社區**: {property_item.get('community_name')}")
-                        
-                        st.markdown(f"**位置**: {property_item.get('location', '未知地點')}")
-                        
+                        if property_item.get("community_name"):
+                            st.markdown(
+                                f"**社區**: {property_item.get('community_name')}"
+                            )
+
+                        st.markdown(
+                            f"**位置**: {property_item.get('location', '未知地點')}"
+                        )
+
                         # 價格信息
                         price_html = f"**價格**: <span style='color:#e63946; font-weight:bold; font-size:1.2em;'>{property_item.get('current_price', '')} {property_item.get('price_unit', '萬')}</span>"
-                        if property_item.get('original_price'):
+                        if property_item.get("original_price"):
                             price_html += f" <small><s>{property_item.get('original_price', '')}</s></small>"
                         st.markdown(price_html, unsafe_allow_html=True)
-                        
-                        if property_item.get('discount_percentage'):
-                            st.markdown(f"**降價**: {property_item.get('discount_percentage')}")
-                        
+
+                        if property_item.get("discount_percentage"):
+                            st.markdown(
+                                f"**降價**: {property_item.get('discount_percentage')}"
+                            )
+
                         # 基本信息
                         st.markdown(f"**格局**: {property_item.get('layout', '未知')}")
                         st.markdown(f"**坪數**: {property_item.get('total_size', '')}")
                         st.markdown(f"**樓層**: {property_item.get('floor', '')}")
-                        st.markdown(f"**屋齡**: {property_item.get('property_age', '')} | **類型**: {property_item.get('property_type', '')}")
-                        
+                        st.markdown(
+                            f"**屋齡**: {property_item.get('property_age', '')} | **類型**: {property_item.get('property_type', '')}"
+                        )
+
                     # 底部顯示特徵標籤和關注人數
                     st.markdown("---")
-                    
+
                     # 處理特徵去重複
                     features_list = []
-                    if property_item.get('features'):
-                        features_list = [f.get("feature", "") for f in property_item.get('features', []) if f.get("feature")]
+                    if property_item.get("features"):
+                        features_list = [
+                            f.get("feature", "")
+                            for f in property_item.get("features", [])
+                            if f.get("feature")
+                        ]
                         # 移除重複的特徵
                         features_list = list(dict.fromkeys(features_list))
-                    
+
                     # 使用單獨的列顯示特徵
                     if features_list:
                         feature_cols = st.columns(min(3, len(features_list)))
                         for i, feature in enumerate(features_list[:3]):
                             feature_cols[i].markdown(f"🏷️ {feature}")
-                    
+
                     # 顯示關注人數
-                    st.markdown(f"👀 已有 **{property_item.get('interest_count', '0')}** 人關注")
+                    st.markdown(
+                        f"👀 已有 **{property_item.get('interest_count', '0')}** 人關注"
+                    )
+
 
 ################################
 ### MAIN APPLICATION WORKFLOW ###
 ################################
 
+
 def main():
     # 渲染側邊欄
     render_sidebar()
-    
+
     # 主界面標題
     st.title("🏠 台灣房地產資料助理")
     st.markdown("**請在下方輸入您的房地產相關問題，我們將為您提供專業的分析與解答。**")
-    
+
     # 顯示當前選擇的代理
     st.info(f"當前使用: {st.session_state.selected_agent}")
-    
+
     # 顯示房產列表 (如果有)
     if st.session_state.selected_agent == "網頁搜尋代理":
         render_property_listings()
-    
+
     # 顯示聊天歷史
     render_chat_history()
-    
+
     # 使用者輸入
     user_question = st.chat_input("💬 請輸入您的房地產問題...")
-    
+
     # 處理使用者輸入
     if user_question:
         # 顯示使用者訊息
         st.session_state.messages.append({"role": "user", "content": user_question})
         with st.chat_message("user"):
             st.markdown(user_question)
-        
+
         # 處理AI回應
         with st.spinner("AI分析中，請稍候..."):
             try:
@@ -407,7 +438,7 @@ def main():
                 model_name = st.session_state.selected_model
                 memory = st.session_state.memory
                 logger.info(f"使用模型: {model_name}")
-                
+
                 # 根據選擇的代理類型處理查詢
                 if st.session_state.selected_agent == "資料分析代理":
                     # 處理資料分析查詢
@@ -423,25 +454,29 @@ def main():
                         # 如果沒有事件循環，則創建一個新的
                         loop = asyncio.new_event_loop()
                         asyncio.set_event_loop(loop)
-                    
+
                     # 處理網頁搜尋查詢
-                    web_result = asyncio.run(handle_web_agent_query(user_question, model_name))
+                    web_result = asyncio.run(
+                        handle_web_agent_query(user_question, model_name)
+                    )
                     # 顯示網頁搜尋結果
                     render_web_agent_result(web_result, memory, user_question)
-                
+
             except Exception as e:
                 import traceback
-                
+
                 error_details = traceback.format_exc()
                 answer = f"處理問題時發生錯誤: {str(e)}"
                 logger.error(f"處理查詢時出錯: {error_details}")
                 st.error(f"發生錯誤: {str(e)}")
-                
+
                 # 儲存錯誤回應
-                st.session_state.messages.append({"role": "assistant", "content": answer})
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": answer}
+                )
                 with st.chat_message("assistant"):
                     st.markdown(answer)
-    
+
     # 清空對話按鈕
     if st.button("清空對話"):
         st.session_state.messages = []
@@ -449,6 +484,7 @@ def main():
         st.session_state.session_id = f"thread-{os.urandom(4).hex()}"
         st.session_state.property_data = None
         st.rerun()
+
 
 # 執行主函數
 if __name__ == "__main__":
