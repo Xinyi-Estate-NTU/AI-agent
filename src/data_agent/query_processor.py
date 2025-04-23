@@ -6,7 +6,6 @@ import pandas as pd
 import traceback
 from langsmith import traceable
 from langchain_groq import ChatGroq
-from langchain_experimental.agents import create_pandas_dataframe_agent
 from langchain.agents.agent_types import AgentType
 
 from .config import DEFAULT_MODEL, QueryType
