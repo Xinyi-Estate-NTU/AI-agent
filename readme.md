@@ -60,3 +60,35 @@ cp .env.example .env
 cd src
 streamlit run app.py
 ```
+
+## new-version
+
+```bash
+src
+├── app.py
+├── data
+│   ├── NTP_Sales.csv
+│   └── TP_Sales.csv
+├── data_agent
+│   ├── __init__.py
+│   ├── api.py
+│   ├── config.py
+│   ├── data_analysis.py
+│   ├── data_loader.py
+│   ├── query_processor.py
+│   └── utils.py
+└── web_agent
+    ├── __init__.py
+    ├── api.py
+    ├── config.py
+    ├── processor.py
+    ├── scraper.py
+    ├── url_builder.py
+    └── utils.py
+```
+
+## Current Project Structure
+This is my current project structure, which is built with LangChain, GROQ, Streamlit, and LangSmith:
+- `app.py` is the Streamlit interface for the data_agent and web_agent
+- `data_agent` is the LLM and tools to interact with data
+- `web_agent` is the LLM and tools to interact with web with web scraping
