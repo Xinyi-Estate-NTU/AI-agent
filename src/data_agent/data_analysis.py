@@ -778,3 +778,113 @@ class RealEstateAnalyzer:
         else:
             logger.info("未應用過濾條件，返回原始數據")
             return df
+
+    @staticmethod
+    def find_districts_within_budget(
+        df: pd.DataFrame,
+        budget: float,
+        min_rooms: int = 3,
+        has_elevator: bool = True,
+        city: str = "臺北市",
+    ) -> Dict[str, Any]:
+        """根據預算和條件找出符合的行政區。
+
+        Args:
+            df: 房價數據框
+            budget: 預算金額(萬元)
+            min_rooms: 最少房間數
+            has_elevator: 是否需要電梯
+            city: 城市名稱
+
+        Returns:
+            包含分析結果的字典
+        """
+        logger.info(
+            f"尋找符合預算 {budget} 萬元的行政區，條件：{min_rooms}房以上，電梯：{has_elevator}"
+        )
+
+        try:
+            # 創建數據副本
+            analysis_df = df.copy()
+
+            # 1. 過濾條件
+            # 房間數過濾
+            if min_rooms > 0:
+                analysis_df = analysis_df[analysis_df["建物現況格局-房"] >= min_rooms]
+
+            # 電梯過濾
+            if has_elevator:
+                analysis_df = analysis_df[analysis_df["電梯"] == "有"]
+
+            # 2. 檢查過濾後的數據量
+            if len(analysis_df) == 0:
+                return {
+                    "success": False,
+                    "error": "沒有符合條件的資料",
+                    "result": f"在{city}找不到符合{min_rooms}房以上且有電梯的房子資料。",
+                }
+
+            # 3. 計算每個行政區的平均總價
+            district_avg = (
+                analysis_df.groupby("鄉鎮市區")["總價元"].mean() / 10000
+            )  # 轉換為萬元
+
+            # 4. 找出符合預算的行政區
+            affordable_districts = district_avg[district_avg <= budget].sort_values()
+
+            # 如果沒有任何區域符合預算，找出最接近的三個區域
+            if len(affordable_districts) == 0:
+                closest_districts = district_avg.sort_values().head(3)
+
+                result = {
+                    "success": False,
+                    "error": "沒有符合預算的行政區",
+                    "result": f"在{city}，預算{budget}萬元無法購買符合條件的房子。\n最接近預算的三個行政區是：\n"
+                    + "\n".join(
+                        [
+                            f"- {idx}：平均 {val:.1f} 萬元"
+                            for idx, val in closest_districts.items()
+                        ]
+                    ),
+                    "affordable_districts": [],
+                    "closest_districts": closest_districts.to_dict(),
+                    "budget": budget,
+                    "conditions": {
+                        "房間數": min_rooms,
+                        "電梯": "有" if has_elevator else "無",
+                    },
+                }
+            else:
+                # 計算每個符合預算區域的平均坪數
+                district_sizes = {}
+                for district in affordable_districts.index:
+                    district_data = analysis_df[analysis_df["鄉鎮市區"] == district]
+                    avg_size = district_data["建物移轉總坪數"].mean()
+                    district_sizes[district] = avg_size
+
+                result_text = f"在{city}，預算{budget}萬元可以購買{min_rooms}房以上、有電梯的房子的行政區有：\n"
+                for district, price in affordable_districts.items():
+                    avg_size = district_sizes.get(district, 0)
+                    result_text += f"- {district}：平均 {price:.1f} 萬元（平均 {avg_size:.1f} 坪）\n"
+
+                result = {
+                    "success": True,
+                    "result": result_text,
+                    "affordable_districts": affordable_districts.to_dict(),
+                    "district_sizes": district_sizes,
+                    "budget": budget,
+                    "conditions": {
+                        "房間數": min_rooms,
+                        "電梯": "有" if has_elevator else "無",
+                    },
+                }
+
+            return result
+
+        except Exception as e:
+            logger.error(f"尋找符合預算區域時出錯: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "result": f"分析符合預算的區域時發生錯誤: {str(e)}",
+            }

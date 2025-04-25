@@ -19,6 +19,7 @@ from .config import (
     VALID_DISTRICTS,
     RESPONSE_SCHEMAS_CONFIG,
     QUERY_PARSING_TEMPLATE,
+    AREA_SEARCH_KEYWORDS,
 )
 
 logger = logging.getLogger(__name__)
@@ -111,6 +112,20 @@ def identify_query_type(text: str, parsed_params=None, llm_service=None) -> Quer
     # 規則4: 短查詢 + 城市或行政區可能是隱含的價格查詢
     if (has_city or has_district) and len(text) < 25:
         return QueryType.AVERAGE_PRICE
+
+    # 規則0: 區域搜尋類查詢
+    if any(keyword in text for keyword in AREA_SEARCH_KEYWORDS):
+        # 預算相關關鍵詞
+        budget_patterns = [
+            r"預算(\d+)[萬千億]",
+            r"(\d+)[萬千億]以[內下]",
+            r"(\d+)[萬千億]左右",
+            r"只有(\d+)[萬千億]",
+        ]
+
+        for pattern in budget_patterns:
+            if re.search(pattern, text):
+                return QueryType.AREA_SEARCH
 
     # 默認為其他類型
     return QueryType.OTHER

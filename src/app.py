@@ -103,7 +103,7 @@ def initialize_session_state():
         st.session_state.selected_model = DEFAULT_MODEL
 
     if "selected_agent" not in st.session_state:
-        st.session_state.selected_agent = "資料分析代理"
+        st.session_state.selected_agent = "資料分析助理"
 
     if "property_data" not in st.session_state:
         st.session_state.property_data = None
@@ -136,7 +136,7 @@ def render_sidebar():
                 st.info("模型已更改，重置對話以套用新模型。")
 
         # 代理選擇
-        agent_options = ["資料分析代理", "網頁搜尋代理"]
+        agent_options = ["資料分析助理", "房產搜尋助理"]
         selected_agent = st.radio("選擇代理類型", agent_options)
         if (
             "selected_agent" not in st.session_state
@@ -144,13 +144,15 @@ def render_sidebar():
         ):
             st.session_state.selected_agent = selected_agent
             # 切換代理時清空房產數據
-            if selected_agent == "資料分析代理":
+            if selected_agent == "資料分析助理":
                 st.session_state.property_data = None
 
         st.markdown("💡 你可以詢問有關台灣房地產的問題，例如：")
-        st.markdown("- 台北市 2019-2024 三房兩廳的平均房價 (資料分析)")
-        st.markdown("- 幫我找新北市新店區的公寓大樓 (網頁搜尋)")
-        st.markdown("- 幫我搜尋近捷運站的台北市信義區房屋 (網頁搜尋)")
+        st.markdown("- 臺北市大安區近兩年三房兩廳的行情如何? (資料分析)")
+        st.markdown(
+            "- 目前預算只有3000萬，想要在臺北市買有電梯三房以上的房子，可以買在哪些地區？ (資料分析)"
+        )
+        st.markdown("- 我要找新北市板橋區不要四樓有游泳池的房子 (網頁搜尋)")
 
 
 # 顯示對話歷史
@@ -178,7 +180,7 @@ def render_chat_history():
 
 # 處理資料分析查詢
 def handle_data_agent_query(user_question, model_name, memory):
-    """處理資料分析代理的查詢"""
+    """處理資料分析助理的查詢"""
     logger.info(f"處理資料分析查詢: '{user_question}'")
 
     # 使用原來的數據分析代理
@@ -195,7 +197,7 @@ def handle_data_agent_query(user_question, model_name, memory):
 
 # 顯示資料分析結果
 def render_data_agent_result(result):
-    """渲染資料分析代理的結果"""
+    """渲染資料分析助理的結果"""
     if result["success"]:
         answer = result["result"]
 
@@ -415,7 +417,7 @@ def main():
     st.info(f"當前使用: {st.session_state.selected_agent}")
 
     # 顯示房產列表 (如果有)
-    if st.session_state.selected_agent == "網頁搜尋代理":
+    if st.session_state.selected_agent == "房產搜尋助理":
         render_property_listings()
 
     # 顯示聊天歷史
@@ -440,7 +442,7 @@ def main():
                 logger.info(f"使用模型: {model_name}")
 
                 # 根據選擇的代理類型處理查詢
-                if st.session_state.selected_agent == "資料分析代理":
+                if st.session_state.selected_agent == "資料分析助理":
                     # 處理資料分析查詢
                     result = handle_data_agent_query(user_question, model_name, memory)
                     # 顯示資料分析結果

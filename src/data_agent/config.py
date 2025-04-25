@@ -29,6 +29,7 @@ INPUT_TYPE_DATA_ANALYSIS = "data_analysis"
 class QueryType(Enum):
     PLOT = "plot"  # 製圖
     AVERAGE_PRICE = "average_price"  # 平均價格
+    AREA_SEARCH = "area_search"  # 區域搜尋
     OTHER = "other"  # 其他類型
 
 
@@ -72,6 +73,21 @@ PLOT_KEYWORDS = [
     "漲跌",
     "成長",
     "歷史",
+]
+
+# 區域搜尋相關關鍵詞
+AREA_SEARCH_KEYWORDS = [
+    "哪些區域",
+    "哪些地區",
+    "什麼區域",
+    "什麼地區",
+    "哪裡",
+    "可以買",
+    "能買",
+    "買在哪",
+    "預算",
+    "買得起",
+    "負擔得起",
 ]
 
 #########################################################

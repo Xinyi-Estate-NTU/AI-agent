@@ -213,6 +213,117 @@ class RealEstateQueryProcessor:
                 "model_used": self.model_name,
             }
 
+    def handle_area_search_query(self, text: str, parsed_params=None) -> Dict[str, Any]:
+        """處理區域搜尋查詢，尋找符合條件的行政區。"""
+        logger.info(f"處理區域搜尋查詢: '{text}'")
+
+        try:
+            # 如果沒有提供已解析的參數，調用parse_query_to_json
+            if not parsed_params:
+                parsed_params = parse_query_to_json(self.llm_service, text)
+
+            city = parsed_params.get("城市")
+
+            # 如果沒有識別到城市，使用默認值
+            if not city:
+                city = "臺北市"
+                logger.info(f"未識別到城市，使用默認值: {city}")
+
+            # 加載城市數據
+            df = self.data_loader.load_city_data(city)
+            if df is None or df.empty:
+                return {
+                    "success": False,
+                    "message": f"無法加載 {city} 的數據或數據為空",
+                    "result": f"抱歉，我找不到 {city} 的房價數據。",
+                }
+
+            # 尋找預算金額
+            budget_patterns = [
+                r"預算(\d+)[萬千億]",
+                r"(\d+)[萬千億]以[內下]",
+                r"(\d+)[萬千億]左右",
+                r"只有(\d+)[萬千億]",
+            ]
+
+            budget = None
+            for pattern in budget_patterns:
+                match = re.search(pattern, text)
+                if match:
+                    budget = float(match.group(1))
+                    break
+
+            # 如果未找到預算，從文本中提取
+            if budget is None:
+                # 尋找所有數字+單位的組合
+                amount_matches = re.findall(r"(\d+)([萬千億])", text)
+                if amount_matches:
+                    for amount, unit in amount_matches:
+                        if unit == "萬":
+                            budget = float(amount)
+                            break
+                        elif unit == "億":
+                            budget = float(amount) * 10000
+                            break
+                        elif unit == "千":
+                            budget = float(amount) / 10
+                            break
+
+            # 如果仍未找到預算，使用默認值
+            if budget is None:
+                budget = 2000  # 默認2000萬
+                logger.info(f"未識別到預算，使用默認值: {budget}萬元")
+
+            # 提取房間數要求
+            min_rooms = 3  # 默認至少3房
+            rooms_match = re.search(r"(\d+)房", text)
+            if rooms_match:
+                min_rooms = int(rooms_match.group(1))
+            elif parsed_params.get("建物現況格局-房"):
+                min_rooms = parsed_params.get("建物現況格局-房")
+
+            # 提取電梯要求
+            has_elevator = True  # 默認需要電梯
+            if "電梯" in text and "無電梯" in text:
+                has_elevator = False
+            elif parsed_params.get("電梯") == "無":
+                has_elevator = False
+
+            # 執行區域搜尋
+            result = self.analyzer.find_districts_within_budget(
+                df, budget, min_rooms, has_elevator, city
+            )
+
+            # 格式化結果
+            return {
+                "success": result.get("success", False),
+                "message": (
+                    "成功分析符合預算的行政區"
+                    if result.get("success", False)
+                    else result.get("error", "分析失敗")
+                ),
+                "original_text": text,
+                "result": result.get("result", ""),
+                "affordable_districts": result.get("affordable_districts", {}),
+                "district_sizes": result.get("district_sizes", {}),
+                "closest_districts": result.get("closest_districts", {}),
+                "budget": budget,
+                "conditions": result.get("conditions", {}),
+                "query_type": QueryType.AREA_SEARCH.value,
+                "model_used": self.model_name,
+            }
+
+        except Exception as e:
+            logger.error(f"處理區域搜尋查詢時出錯: {e}")
+            logger.debug(f"錯誤堆疊: {traceback.format_exc()}")
+            return {
+                "success": False,
+                "message": f"處理區域搜尋查詢時出錯: {str(e)}",
+                "result": f"分析符合預算的區域時發生錯誤: {str(e)}",
+                "query_type": QueryType.AREA_SEARCH.value,
+                "model_used": self.model_name,
+            }
+
     @traceable(name="realestate_query_processing")
     def process_query(self, text: str) -> Dict[str, Any]:
         """處理房地產相關查詢的主函數。"""
@@ -241,6 +352,13 @@ class RealEstateQueryProcessor:
         elif query_type == QueryType.PLOT:
             # 使用已解析的參數處理製圖查詢
             return self.handle_plot_query(text, parsed_params)
+
+        elif query_type == QueryType.AREA_SEARCH:
+            # 使用已解析的參數處理區域搜尋查詢
+            direct_result = self.handle_area_search_query(text, parsed_params)
+            if direct_result:
+                return direct_result
+            logger.info("直接處理區域搜尋查詢失敗，轉用一般方法")
 
         # 一般查詢處理流程（包括其他查詢或降級處理）
         try:
