@@ -1,3 +1,5 @@
+# Announcement
+- the code is all in here, for any question, open an github issue.
 # 主要組件
 
 - **app.py**: 主要的 Streamlit 應用程序入口點，處理用戶界面和交互邏輯
