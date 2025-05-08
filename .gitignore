@@ -4,7 +4,6 @@ AI-agent-rules
 
 #data
 data/
-notes/
 
 # Virtual Environment
 .venv/
